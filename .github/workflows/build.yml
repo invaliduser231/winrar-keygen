@@ -1,0 +1,227 @@
+name: Build All Platforms
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+on:
+  workflow_dispatch:
+    inputs:
+      windows_x64:
+        description: 'Build Windows x64'
+        type: boolean
+        default: false
+      windows_x86:
+        description: 'Build Windows x86'
+        type: boolean
+        default: false
+      windows_arm64:
+        description: 'Build Windows ARM64'
+        type: boolean
+        default: false
+      linux_x64:
+        description: 'Build Linux x64'
+        type: boolean
+        default: true
+      linux_arm64:
+        description: 'Build Linux ARM64'
+        type: boolean
+        default: true
+      macos_arm64:
+        description: 'Build macOS ARM64'
+        type: boolean
+        default: true
+
+jobs:
+  # --- Windows x64 build (MSBuild + vcpkg) ---
+  windows-x64:
+    if: ${{ inputs.windows_x64 }}
+    name: Windows x64
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v7.0.0
+
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11.6
+        with:
+          vcpkgGitCommitId: 'c3867e714dd3a51c272826eea77267876517ed99'
+
+      - name: Integrate vcpkg
+        run: vcpkg integrate install
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v3
+        with:
+          vs-version: '[17.0,18.0)'
+
+      - name: Build
+        run: |
+          msbuild winrar-keygen.vcxproj /p:Configuration=Release /p:Platform=x64 /p:VcpkgEnableManifest=true
+
+      - name: Prepare artifact
+        shell: pwsh
+        run: |
+          Copy-Item "bin/x64-Release/winrar-keygen.exe" "winrar-keygen-x64.exe"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: winrar-keygen-x64
+          path: winrar-keygen-x64.exe
+
+  # --- Windows x86 build (MSBuild + vcpkg) ---
+  windows-x86:
+    if: ${{ inputs.windows_x86 }}
+    name: Windows x86
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v7.0.0
+
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11.6
+        with:
+          vcpkgGitCommitId: 'c3867e714dd3a51c272826eea77267876517ed99'
+
+      - name: Integrate vcpkg
+        run: vcpkg integrate install
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v3
+        with:
+          vs-version: '[17.0,18.0)'
+
+      - name: Build
+        run: |
+          msbuild winrar-keygen.vcxproj /p:Configuration=Release /p:Platform=Win32 /p:VcpkgEnableManifest=true
+
+      - name: Prepare artifact
+        shell: pwsh
+        run: |
+          Copy-Item "bin/Win32-Release/winrar-keygen.exe" "winrar-keygen-x86.exe"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: winrar-keygen-x86
+          path: winrar-keygen-x86.exe
+
+  # --- Windows ARM64 build (MSBuild + vcpkg) ---
+  windows-arm64:
+    if: ${{ inputs.windows_arm64 }}
+    name: Windows ARM64
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v7.0.0
+
+      - name: Setup vcpkg
+        uses: lukka/run-vcpkg@v11.6
+        with:
+          vcpkgGitCommitId: 'c3867e714dd3a51c272826eea77267876517ed99'
+
+      - name: Integrate vcpkg
+        run: vcpkg integrate install
+
+      - name: Setup MSBuild
+        uses: microsoft/setup-msbuild@v3
+        with:
+          vs-version: '[17.0,18.0)'
+
+      - name: Build
+        run: |
+          msbuild winrar-keygen.vcxproj /p:Configuration=Release /p:Platform=ARM64 /p:VcpkgEnableManifest=true
+
+      - name: Prepare artifact
+        shell: pwsh
+        run: |
+          Copy-Item "bin/ARM64-Release/winrar-keygen.exe" "winrar-keygen-arm64.exe"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: winrar-keygen-arm64
+          path: winrar-keygen-arm64.exe
+
+  # --- Linux x64 build (CMake) ---
+  linux-x64:
+    if: ${{ inputs.linux_x64 }}
+    name: Linux x64
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.0
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgmp-dev
+
+      - name: Build
+        run: |
+          mkdir build && cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release
+          cmake --build . --config Release
+
+      - name: Prepare artifact
+        run: |
+          cp build/winrar-keygen winrar-keygen-linux-x64
+          chmod +x winrar-keygen-linux-x64
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: winrar-keygen-linux-x64
+          path: winrar-keygen-linux-x64
+
+  # --- Linux ARM64 build (native runner) ---
+  linux-arm64:
+    if: ${{ inputs.linux_arm64 }}
+    name: Linux ARM64
+    runs-on: ubuntu-24.04-arm
+    steps:
+      - uses: actions/checkout@v7.0.0
+
+      - name: Install dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libgmp-dev
+
+      - name: Build
+        run: |
+          mkdir build && cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release
+          cmake --build . --config Release
+
+      - name: Prepare artifact
+        run: |
+          cp build/winrar-keygen winrar-keygen-linux-arm64
+          chmod +x winrar-keygen-linux-arm64
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: winrar-keygen-linux-arm64
+          path: winrar-keygen-linux-arm64
+
+  # --- macOS ARM64 build (CMake) ---
+  macos:
+    if: ${{ inputs.macos_arm64 }}
+    name: macOS ARM64
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v7.0.0
+
+      - name: Install dependencies
+        run: brew list gmp &>/dev/null || brew install gmp
+
+      - name: Build
+        run: |
+          mkdir build && cd build
+          cmake .. -DCMAKE_BUILD_TYPE=Release
+          cmake --build . --config Release
+
+      - name: Prepare artifact
+        run: |
+          cp build/winrar-keygen winrar-keygen-macos-arm64
+          chmod +x winrar-keygen-macos-arm64
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: winrar-keygen-macos-arm64
+          path: winrar-keygen-macos-arm64
